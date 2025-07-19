@@ -142,7 +142,7 @@ export default function SignupPage() {
                   last_name: fullName.split(" ").slice(1).join(" ") || "",
                   email,
                   password,
-                  role: "client",
+                  role: "admin",
                 });
 
                 if (res.token) {

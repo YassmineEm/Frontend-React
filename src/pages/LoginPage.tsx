@@ -67,7 +67,7 @@ export default function AuthPage() {
                 console.error("Login failed:", err);
                 alert("Login failed. Check credentials.");
               }
-              navigate("/upload");
+              navigate("/chat");
 
             }}
             className="w-full bg-gradient-to-r from-ai-blue to-ai-green text-white shadow-elegant hover:shadow-glow transition-all duration-300 dark:shadow-none"
