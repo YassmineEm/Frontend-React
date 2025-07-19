@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link ,useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { UserPlus } from "lucide-react";
 import { FcGoogle } from "react-icons/fc";
 import { useState, useEffect } from "react";
-import { register, googleLogin } from "@/lib/api";
+import { signup, googleLogin } from "@/lib/auth";
 
 declare global {
   interface Window {
@@ -17,6 +17,9 @@ declare global {
 export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const navigate = useNavigate();
+
 
   useEffect(() => {
     /* global google */
@@ -47,7 +50,7 @@ export default function SignupPage() {
 
     try {
       const res = await googleLogin(idToken);
-      localStorage.setItem("token", res.access_token);
+      localStorage.setItem("token", res.token);
       alert("Google signup successful!");
     } catch (err) {
       console.error("Google signup failed:", err);
@@ -92,6 +95,8 @@ export default function SignupPage() {
             <Input
               id="name"
               type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
               placeholder="Name"
               className="bg-ai-bg border-ai-border rounded-xl dark:bg-[#2a2a2a] dark:border-gray-700 dark:text-white dark:placeholder:text-gray-500"
             />
@@ -127,10 +132,27 @@ export default function SignupPage() {
 
           <Button
             onClick={async () => {
+              if (!email || !password || !fullName.trim()) {
+                alert("Please fill all fields");
+                return;
+              }
               try {
-                const res = await register({ email, password, role: "client" });
+                const res = await signup({
+                  first_name: fullName.split(" ")[0] || "",
+                  last_name: fullName.split(" ").slice(1).join(" ") || "",
+                  email,
+                  password,
+                  role: "client",
+                });
+
+                if (res.token) {
+                  localStorage.setItem("token", res.token); 
+                }
+
                 console.log("Registration success:", res);
                 alert("Account created successfully!");
+
+                navigate("/upload");
               } catch (err) {
                 console.error("Registration failed:", err);
                 alert("Registration failed. Try again.");

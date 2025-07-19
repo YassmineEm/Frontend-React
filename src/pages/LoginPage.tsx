@@ -1,15 +1,16 @@
-import { Link } from "react-router-dom"
+import { Link , useNavigate } from "react-router-dom"
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Lock, LogIn } from "lucide-react";
 import { useState } from "react";
-import { login } from "@/lib/api";
+import { login } from "@/lib/auth";
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-ai-bg via-ai-surface to-ai-blue-light/20 dark:from-[#121212] dark:via-[#1e1e1e] dark:to-[#2a2a2a]/20 p-4">
@@ -54,13 +55,20 @@ export default function AuthPage() {
 
           <Button
             onClick={async () => {
+
+              if (!email || !password) {
+                alert("Please fill in both email and password");
+                return;
+              }
               try {
-                const res = await login({ email, password });
+                const res = await login( email, password );
                 console.log("Login success:", res);
               } catch (err) {
                 console.error("Login failed:", err);
                 alert("Login failed. Check credentials.");
               }
+              navigate("/upload");
+
             }}
             className="w-full bg-gradient-to-r from-ai-blue to-ai-green text-white shadow-elegant hover:shadow-glow transition-all duration-300 dark:shadow-none"
           >

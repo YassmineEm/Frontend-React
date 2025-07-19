@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
   Send,
   ThumbsUp,
@@ -25,7 +25,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
-import { chatWithBot, fetchChatHistory } from "@/lib/api"
+import { chatWithBot , fetchConversationList} from "@/lib/api"
 
 interface Message {
   id: string
@@ -51,13 +51,35 @@ export default function ChatPage() {
   const [isTyping, setIsTyping] = useState(false)
   const [showDrawer, setShowDrawer] = useState(false)
   const [chatHistory, setChatHistory] = useState<{ question: string; timestamp: string }[]>([])
+  const [error, setError] = useState<string | null>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Scroll automatique vers le bas quand messages changent
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages, isTyping])
+
+  // Récupérer historique des conversations quand drawer s'ouvre
+  useEffect(() => {
+  if (showDrawer) {
+    fetchConversationList()
+      .then((data) => {
+        setChatHistory(data); 
+      })
+      .catch((err) => {
+        console.error("Erreur historique :", err);
+        setError("Impossible de charger l'historique des conversations.");
+      });
+  }
+}, [showDrawer]);
 
   const sendMessage = async () => {
     if (!input.trim()) return
+    setError(null)
 
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: input,
+      content: input.trim(),
       sender: "user",
       timestamp: new Date(),
     }
@@ -67,18 +89,18 @@ export default function ChatPage() {
     setIsTyping(true)
 
     try {
-      const response = await chatWithBot(input)
-
+      const response = await chatWithBot(userMessage.content)
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         content: response.answer,
         sender: "ai",
         timestamp: new Date(),
+        sources: response.sources || [], // si backend renvoie sources
       }
-
       setMessages((prev) => [...prev, aiMessage])
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erreur backend:", err)
+      setError(err.message || "Une erreur est survenue lors de la requête au chatbot.")
     } finally {
       setIsTyping(false)
     }
@@ -90,25 +112,20 @@ export default function ChatPage() {
     )
   }
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    })
-  }
+  const formatTime = (date: Date) =>
+    date.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })
 
-  useEffect(() => {
-    if (showDrawer) {
-      fetchChatHistory()
-        .then((data) => setChatHistory(data.conversations))
-        .catch((err) => console.error("Erreur historique :", err))
+  // Gestion envoi via Enter
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault()
+      if (!isTyping) sendMessage()
     }
-  }, [showDrawer])
+  }
 
   return (
     <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-ai-bg via-ai-surface to-ai-blue-light/20 dark:from-[#121212] dark:via-[#1e1e1e] dark:to-[#2a2a2a]">
       <div className="max-w-5xl mx-auto">
-        
         <div className="mb-8 text-center animate-slide-up">
           <Badge className="mb-4 px-4 py-2 bg-gradient-to-r from-ai-blue to-ai-green text-white border-0 shadow-elegant dark:shadow-none">
             <MessageCircle className="w-4 h-4 mr-2" />
@@ -142,20 +159,24 @@ export default function ChatPage() {
                 >
                   <div className={`max-w-xs lg:max-w-2xl ${message.sender === "user" ? "order-2" : "order-1"}`}>
                     <div className="flex items-center space-x-2 mb-2">
-                      <div className={`w-6 h-6 rounded-full flex items-center justify-center shadow-elegant ${
-                        message.sender === "ai"
-                          ? "bg-gradient-to-br from-ai-blue to-ai-green"
-                          : "bg-gradient-to-br from-ai-green to-ai-green/80"
-                      }`}>
+                      <div
+                        className={`w-6 h-6 rounded-full flex items-center justify-center shadow-elegant ${
+                          message.sender === "ai"
+                            ? "bg-gradient-to-br from-ai-blue to-ai-green"
+                            : "bg-gradient-to-br from-ai-green to-ai-green/80"
+                        }`}
+                      >
                         {message.sender === "ai" ? <Bot className="w-3 h-3 text-white" /> : <User className="w-3 h-3 text-white" />}
                       </div>
                       <span className="text-xs font-medium text-ai-text-light dark:text-gray-400">{formatTime(message.timestamp)}</span>
                     </div>
-                    <div className={`rounded-2xl p-4 shadow-elegant ${
-                      message.sender === "user"
-                        ? "bg-gradient-to-br from-ai-green to-ai-green/90 text-white"
-                        : "bg-ai-surface border border-ai-border/50 dark:bg-[#2a2a2a] dark:border-gray-700"
-                    }`}>
+                    <div
+                      className={`rounded-2xl p-4 shadow-elegant ${
+                        message.sender === "user"
+                          ? "bg-gradient-to-br from-ai-green to-ai-green/90 text-white"
+                          : "bg-ai-surface border border-ai-border/50 dark:bg-[#2a2a2a] dark:border-gray-700"
+                      }`}
+                    >
                       <p className="leading-relaxed whitespace-pre-wrap dark:text-gray-200">{message.content}</p>
 
                       {message.sources && (
@@ -180,105 +201,84 @@ export default function ChatPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleFeedback(message.id, "positive")}
-                          className={`p-2 h-auto rounded-xl transition-all duration-300 ${
-                            message.feedback === "positive"
-                              ? "text-ai-green bg-ai-green-light shadow-elegant dark:bg-[#10b981]/20 dark:text-[#6ee7b7]"
-                              : "text-ai-text-light hover:text-ai-green hover:bg-ai-green-light/50 dark:text-gray-400 dark:hover:text-[#6ee7b7] dark:hover:bg-[#10b981]/10"
-                          }`}
+                          className={`hover:text-green-600 dark:hover:text-green-400 ${message.feedback === "positive" ? "text-green-600 dark:text-green-400" : "text-gray-500"}`}
+                          aria-label="Like"
+                          title="Like"
                         >
-                          <ThumbsUp className="w-4 h-4" />
+                          <ThumbsUp />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleFeedback(message.id, "negative")}
-                          className={`p-2 h-auto rounded-xl transition-all duration-300 ${
-                            message.feedback === "negative"
-                              ? "text-red-500 bg-red-50 shadow-elegant dark:bg-[#ef4444]/20 dark:text-[#fca5a5]"
-                              : "text-ai-text-light hover:text-red-500 hover:bg-red-50 dark:text-gray-400 dark:hover:text-[#fca5a5] dark:hover:bg-[#ef4444]/10"
-                          }`}
+                          className={`hover:text-red-600 dark:hover:text-red-400 ${message.feedback === "negative" ? "text-red-600 dark:text-red-400" : "text-gray-500"}`}
+                          aria-label="Dislike"
+                          title="Dislike"
                         >
-                          <ThumbsDown className="w-4 h-4" />
+                          <ThumbsDown />
                         </Button>
-                        <span className="text-xs text-ai-text-light font-medium dark:text-gray-400">Was this helpful?</span>
                       </div>
                     )}
                   </div>
                 </div>
               ))}
+              <div ref={messagesEndRef} />
+            </div>
+          </CardContent>
+          <CardHeader className="flex items-center gap-3 px-6 py-4 border-t border-ai-border/50 dark:border-gray-700">
+            <Input
+              type="text"
+              placeholder={isTyping ? "AI is typing..." : "Write your message here..."}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={isTyping}
+              className="bg-ai-bg/80 dark:bg-[#1e1e1e]/70 text-ai-text-light dark:text-white focus:ring-2 focus:ring-ai-blue transition"
+              aria-label="Chat input"
+              autoFocus
+            />
+            <Button
+              onClick={sendMessage}
+              disabled={isTyping || !input.trim()}
+              aria-label="Send message"
+              className="bg-gradient-to-r from-ai-blue to-ai-green text-white px-4 py-2 rounded-xl shadow-elegant hover:shadow-glow transition"
+            >
+              <Send className="w-5 h-5" />
+            </Button>
+          </CardHeader>
+          {error && (
+            <div className="text-center text-red-600 p-2 font-semibold">
+              {error}
+            </div>
+          )}
+        </Card>
 
-              {isTyping && (
-                <div className="flex justify-start animate-fade-in">
-                  <div className="max-w-xs lg:max-w-2xl">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <div className="w-6 h-6 bg-gradient-to-br from-ai-blue to-ai-green rounded-full flex items-center justify-center shadow-elegant">
-                        <Bot className="w-3 h-3 text-white" />
-                      </div>
-                      <span className="text-xs font-medium text-ai-text-light dark:text-gray-400">AI is thinking...</span>
-                    </div>
-                    <div className="bg-ai-surface border border-ai-border/50 rounded-2xl p-4 shadow-elegant dark:bg-[#2a2a2a] dark:border-gray-700">
-                      <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-ai-blue rounded-full animate-bounce dark:bg-[#93c5fd]"></div>
-                        <div className="w-2 h-2 bg-ai-blue rounded-full animate-bounce" style={{ animationDelay: "0.1s" }}></div>
-                        <div className="w-2 h-2 bg-ai-blue rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+        {/* Drawer for old conversations */}
+        <Drawer open={showDrawer} onOpenChange={setShowDrawer}>
+          <DrawerContent>
+            <DrawerHeader>
+              <DrawerTitle>Old Conversations</DrawerTitle>
+            </DrawerHeader>
+            <div className="p-4">
+              {chatHistory.length === 0 ? (
+                <p className="text-center text-ai-text-light dark:text-white/70">
+                  No previous conversations found.
+                </p>
+              ) : (
+                <ul className="space-y-4">
+                  {chatHistory.map(({ question, timestamp }, index) => (
+                    <li key={index} className="p-3 border border-ai-border rounded-lg cursor-pointer hover:bg-ai-blue-light/10 dark:hover:bg-[#3b82f6]/20 transition">
+                      <p className="font-semibold text-ai-text dark:text-white">{question}</p>
+                      <p className="text-xs text-ai-text-light dark:text-gray-400">{new Date(timestamp).toLocaleString()}</p>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-elegant-lg bg-ai-surface/80 backdrop-blur-sm animate-slide-up dark:bg-[#1e1e1e]/80 dark:border dark:border-gray-700/50" style={{ animationDelay: "0.3s" }}>
-          <CardContent className="p-4">
-            <div className="flex space-x-3">
-              <Input
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Type your message here..."
-                onKeyPress={(e) => e.key === "Enter" && !isTyping && sendMessage()}
-                className="flex-1 bg-ai-bg border-ai-border rounded-xl px-4 py-3 text-ai-text placeholder:text-ai-text-light focus:ring-2 focus:ring-ai-blue/20 focus:border-ai-blue transition-all duration-300 dark:bg-[#2a2a2a] dark:border-gray-700 dark:text-gray-200 dark:placeholder:text-gray-500 dark:focus:ring-[#3b82f6]/50 dark:focus:border-[#3b82f6]"
-                disabled={isTyping}
-              />
-              <Button
-                onClick={sendMessage}
-                disabled={!input.trim() || isTyping}
-                className="bg-gradient-to-r from-ai-blue to-ai-green hover:from-ai-blue/90 hover:to-ai-green/90 text-white px-6 py-3 rounded-xl shadow-elegant hover:shadow-glow transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none dark:shadow-none"
-              >
-                <Send className="w-5 h-5" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          </DrawerContent>
+        </Drawer>
       </div>
-
-      <Drawer open={showDrawer} onOpenChange={setShowDrawer}>
-        <DrawerContent className="p-6 bg-ai-surface border-t border-ai-border dark:bg-[#1e1e1e] dark:border-gray-700">
-          <DrawerHeader>
-            <DrawerTitle className="text-lg text-ai-text dark:text-gray-200">Old Conversations</DrawerTitle>
-          </DrawerHeader>
-          <div className="mt-4 max-h-64 overflow-y-auto space-y-3 pr-2 text-sm text-ai-text-light custom-scrollbar dark:text-gray-400">
-            {chatHistory.length === 0 ? (
-              <p className="italic dark:text-gray-500">No previous conversations found.</p>
-            ) : (
-              chatHistory.map((item, index) => (
-                <div key={index} className="space-y-1">
-                  <p
-                   className="font-medium cursor-pointer hover:text-ai-blue dark:hover:text-[#93c5fd] dark:text-gray-300"
-                   onClick={() => setInput(item.question)}
-                  >
-                  • {item.question}
-                  </p>
-                  <p className="text-xs text-ai-text-light/70 dark:text-gray-500">
-                    {new Date(item.timestamp).toLocaleString()}
-                  </p>
-                </div>
-              ))
-            )}
-          </div>
-        </DrawerContent>
-      </Drawer>
     </div>
   )
 }
+

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react"
+import { useState, useCallback ,useEffect} from "react"
 import { useDropzone } from "react-dropzone"
 import { Upload, FileText, X, CheckCircle, AlertCircle, Cloud, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -6,6 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 import { uploadDocument } from "@/lib/api";
+import { isAuthenticated } from "@/lib/auth"
+import { useNavigate } from "react-router-dom"
 
 interface UploadedFile {
   id: string
@@ -18,6 +20,7 @@ interface UploadedFile {
 
 export default function UploadPage() {
   const [files, setFiles] = useState<UploadedFile[]>([])
+  const navigate = useNavigate()
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const newFiles = acceptedFiles.map((file) => ({
@@ -103,6 +106,11 @@ export default function UploadPage() {
     { ext: "TXT", desc: "Text Files", icon: "📃", color: "from-gray-500 to-gray-600" },
     { ext: "HTML", desc: "Web Pages", icon: "🌐", color: "from-green-500 to-green-600" },
   ]
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      navigate("/auth/login") 
+    }
+  }, [])
 
   return (
     <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-ai-bg via-ai-surface to-ai-blue-light/20 dark:from-[#121212] dark:via-[#1e1e1e] dark:to-[#2a2a2a]/20">

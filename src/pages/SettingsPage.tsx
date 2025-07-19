@@ -295,45 +295,6 @@ export default function SettingsPage() {
                 </div>
               </CardContent>
             </Card>
-
-            {/* System Logs */}
-            <Card className="border-0 shadow-elegant-lg bg-ai-surface/80 backdrop-blur-sm dark:bg-[#1e1e1e]/80 dark:border dark:border-gray-700/50">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-3 text-2xl dark:text-white">
-                  <div className="w-10 h-10 bg-gradient-to-br from-ai-blue to-ai-blue-dark rounded-xl flex items-center justify-center shadow-elegant dark:shadow-none">
-                    <Database className="w-5 h-5 text-blue-100" />
-                  </div>
-                  <span>System Monitoring</span>
-                </CardTitle>
-                <CardDescription className="text-lg dark:text-gray-400">
-                  View system status and technical logs
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                  <div className="p-4 bg-gradient-to-r from-ai-bg to-ai-blue-light/10 rounded-xl border border-ai-border/50 dark:from-[#2a2a2a] dark:to-[#1e40af]/10 dark:border-gray-700/50">
-                    <div className="font-medium text-ai-text dark:text-white">LLM Service</div>
-                    <Badge className="mt-2 bg-ai-green-light text-ai-green border-0 dark:bg-[#065f46]/20 dark:text-[#6ee7b7]">Operational</Badge>
-                  </div>
-                  <div className="p-4 bg-gradient-to-r from-ai-bg to-ai-blue-light/10 rounded-xl border border-ai-border/50 dark:from-[#2a2a2a] dark:to-[#1e40af]/10 dark:border-gray-700/50">
-                    <div className="font-medium text-ai-text dark:text-white">Database</div>
-                    <Badge className="mt-2 bg-ai-green-light text-ai-green border-0 dark:bg-[#065f46]/20 dark:text-[#6ee7b7]">Connected</Badge>
-                  </div>
-                  <div className="p-4 bg-gradient-to-r from-ai-bg to-ai-blue-light/10 rounded-xl border border-ai-border/50 dark:from-[#2a2a2a] dark:to-[#1e40af]/10 dark:border-gray-700/50">
-                    <div className="font-medium text-ai-text dark:text-white">API</div>
-                    <Badge className="mt-2 bg-ai-green-light text-ai-green border-0 dark:bg-[#065f46]/20 dark:text-[#6ee7b7]">Active</Badge>
-                  </div>
-                </div>
-                
-                <Button
-                  variant="outline"
-                  className="flex items-center space-x-2 bg-ai-bg border-ai-border hover:bg-ai-blue-light/50 hover:border-ai-blue rounded-xl h-12 transition-all duration-300 w-full dark:bg-[#2a2a2a] dark:border-gray-700 dark:hover:bg-[#1e40af]/20 dark:hover:border-[#3b82f6]"
-                >
-                  <Activity className="w-4 h-4 text-ai-blue dark:text-[#93c5fd]" />
-                  <span>View Full System Logs</span>
-                </Button>
-              </CardContent>
-            </Card>
           </>
         )}
       </div>
