@@ -17,12 +17,20 @@ declare global {
 export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"admin" | "client">("client");
   const [fullName, setFullName] = useState("");
   const navigate = useNavigate();
 
 
   useEffect(() => {
-    /* global google */
+    const selectedRole = localStorage.getItem("selectedRole");
+    if (selectedRole === "admin" || selectedRole === "client") {
+      setRole(selectedRole);
+    } else {
+      setRole("client"); 
+    }
+
+    
     if (window.google) {
       window.google.accounts.id.initialize({
         client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
@@ -142,7 +150,7 @@ export default function SignupPage() {
                   last_name: fullName.split(" ").slice(1).join(" ") || "",
                   email,
                   password,
-                  role: "admin",
+                  role,
                 });
 
                 if (res.token) {

@@ -29,11 +29,18 @@ export async function signup(data: {
 }
 
 export async function googleLogin(tokenId: string) {
-  const response = await axios.post(`${API_URL}/auth/google-login`, { token: tokenId })
-  const token = response.data.access_token
-  localStorage.setItem("token", token)
-  const user = jwtDecode<JwtPayload>(token)
-  return { token, user }
+  const role = localStorage.getItem("selectedRole") || "client"; 
+
+  const response = await axios.post(`${API_URL}/auth/google-login`, {
+    token: tokenId,
+    role: role, 
+  });
+
+  const token = response.data.access_token;
+  localStorage.setItem("token", token);
+
+  const user = jwtDecode<JwtPayload>(token);
+  return { token, user };
 }
 
 export function logout() {
