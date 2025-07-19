@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom"
+import { Routes, Route, useLocation } from "react-router-dom"
 import { Header } from "@/components/layout/header"
 import RoleSelectionPage from "@/pages/RoleSelectionPage"
 import HomePage from "@/pages/HomePage"
@@ -11,18 +11,20 @@ import AnalyticsPage from "@/pages/AnalyticsPage"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
 
 export default function App() {
+  const location = useLocation()
+  const hideHeaderRoutes = ["/"] 
+  const shouldHideHeader = hideHeaderRoutes.includes(location.pathname)
+
   return (
     <div className="min-h-screen bg-ai-bg font-sans">
-      <Header />
+      {!shouldHideHeader && <Header />}
       <main>
         <Routes>
           <Route path="/" element={<RoleSelectionPage />} />
 
-          
           <Route path="/auth" element={<LoginPage />} />
           <Route path="/auth/signup" element={<SignupPage />} />
 
-          
           <Route
             path="/chat"
             element={
@@ -39,8 +41,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
-          
           <Route
             path="/upload"
             element={
@@ -57,7 +57,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/home"
             element={
@@ -71,5 +70,6 @@ export default function App() {
     </div>
   )
 }
+
 
 

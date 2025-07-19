@@ -120,5 +120,25 @@ export async function deleteConversation(conversationId: string) {
   })
 }
 
+// Récupérer le profil utilisateur
+export async function getUserProfile(): Promise<{ full_name: string; email: string }> {
+  const response = await authFetch(`${BASE_URL}/auth/profile`);
+  return response.json();
+}
+
+// Mettre à jour le mot de passe
+export async function updateUserPassword(
+  newPassword: string
+): Promise<{ message: string }> {
+  const response = await authFetch(`${BASE_URL}/auth/profile/password`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ new_password: newPassword }),
+  });
+  return response.json();
+}
+
 
 

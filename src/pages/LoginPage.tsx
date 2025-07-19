@@ -63,12 +63,16 @@ export default function AuthPage() {
               try {
                 const res = await login( email, password );
                 console.log("Login success:", res);
+
+                if (res.user.role === "admin") {
+                  navigate("/home");
+                } else {
+                  navigate("/chat");
+                }
               } catch (err) {
                 console.error("Login failed:", err);
                 alert("Login failed. Check credentials.");
               }
-              navigate("/chat");
-
             }}
             className="w-full bg-gradient-to-r from-ai-blue to-ai-green text-white shadow-elegant hover:shadow-glow transition-all duration-300 dark:shadow-none"
           >

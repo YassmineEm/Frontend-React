@@ -7,7 +7,6 @@ import {
 } from "react"
 import { getUser, isAuthenticated, logout } from "../lib/auth"
 
-console.log("AuthProvider loaded")
 type User = {
   sub: string
   role: "admin" | "client"

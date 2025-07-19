@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router-dom"
+import { Link, useLocation ,useNavigate} from "react-router-dom"
 import {
   Bot,
   FileText,
@@ -13,12 +13,18 @@ import { useAuth } from "@/context/AuthContext"
 export function Header() {
   const location = useLocation()
   const pathname = location.pathname
-  const { user, isAuth, signOut } = useAuth()
+  const navigate = useNavigate();
+  const { user, isAuth, signOut } = useAuth();
 
-  const isAuthPage = pathname.startsWith("/auth")
+  const isAuthPage = pathname.startsWith("/auth");
+
+  
+  const handleLogout = () => {
+    signOut();      
+    navigate("/");    
+  };
 
   const navigation = [
-    { name: "Home", href: "/", icon: Sparkles },
     ...(user?.role === "admin"
       ? [{ name: "Documents", href: "/upload", icon: FileText }]
       : []),
@@ -59,7 +65,7 @@ export function Header() {
 
           {/* NAVIGATION */}
           {!isAuthPage && (
-            <nav className="hidden md:flex items-center space-x-1">
+            <nav className="hidden md:flex justify-center items-center space-x-2 flex-1">
               {navigation.map((item) => {
                 const Icon = item.icon
                 const isActive = pathname === item.href
@@ -105,11 +111,11 @@ export function Header() {
                 </>
               ) : (
                 <Button
-                  onClick={signOut}
+                  onClick={handleLogout}
                   variant="ghost"
-                  className="text-red-500 border border-red-400 rounded-full px-4 py-2 text-sm hover:bg-red-100/20 dark:hover:bg-red-500/10"
+                  className="relative rounded-full px-4 py-2 text-sm font-medium transition-all duration-300 border border-ai-border-light text-ai-text-light hover:text-ai-red hover:border-ai-red/50 hover:shadow-red-glow dark:border-gray-600 dark:text-gray-300 dark:hover:text-red-400 dark:hover:border-red-400/50 dark:hover:shadow-red-glow/20"
                 >
-                  Logout
+                Logout
                 </Button>
               )}
             </div>

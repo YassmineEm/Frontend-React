@@ -160,7 +160,17 @@ export default function SignupPage() {
                 console.log("Registration success:", res);
                 alert("Account created successfully!");
 
-                navigate("/upload");
+                if (res.token) {
+                  localStorage.setItem("token", res.token);
+                  localStorage.setItem("userRole", role); 
+                }
+
+                if (role === "admin") {
+                  navigate("/home"); 
+                } else {
+                  navigate("/chat"); 
+                }
+
               } catch (err) {
                 console.error("Registration failed:", err);
                 alert("Registration failed. Try again.");

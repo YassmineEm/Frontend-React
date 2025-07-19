@@ -1,6 +1,6 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useTheme } from "next-themes"
-import { Settings, User, Eye, Lock, Activity, Download, Trash2, LogOut, Users, Database, Shield } from "lucide-react"
+import { Settings, User, Eye, Lock, Activity, Download, Trash2, LogOut, Users, Shield } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
@@ -8,12 +8,29 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
+import { getUserProfile, updateUserPassword } from "@/lib/api"
+import { Loader2 } from 'lucide-react'
+
+interface UserProfile {
+  full_name: string
+  email: string
+}
+
+interface PasswordUpdateResponse {
+  message: string
+}
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme()
   const [twoFactorAuth, setTwoFactorAuth] = useState(false)
   const [emailNotifications, setEmailNotifications] = useState(true)
   const [isAdmin] = useState(true)
+  const [fullName, setFullName] = useState("")
+  const [email, setEmail] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [loadingProfile, setLoadingProfile] = useState(false)
+  const [updatingPassword, setUpdatingPassword] = useState(false)
+  const [message, setMessage] = useState("")
 
   const activityLogs = [
     { id: 1, action: "Login", date: "2024-01-15 14:30", device: "Chrome on Windows" },
@@ -25,6 +42,43 @@ export default function SettingsPage() {
     { id: 1, email: "admin@company.com", role: "admin", lastActive: "Today, 15:30" },
     { id: 2, email: "user1@company.com", role: "user", lastActive: "Yesterday, 18:45" },
   ]
+
+  useEffect(() => {
+    async function fetchProfile() {
+      setLoadingProfile(true)
+      try {
+        const profile: UserProfile = await getUserProfile()
+        setFullName(profile.full_name)
+        setEmail(profile.email)
+      } catch (err) {
+        console.error("Error loading profile:", err)
+        setMessage("Failed to load profile")
+      } finally {
+        setLoadingProfile(false)
+      }
+    }
+    fetchProfile()
+  }, [])
+
+  async function handleUpdatePassword() {
+    if (!newPassword) {
+      setMessage("Password cannot be empty")
+      return
+    }
+    
+    setUpdatingPassword(true)
+    setMessage("")
+    
+    try {
+      const res: PasswordUpdateResponse = await updateUserPassword(newPassword)
+      setMessage(res.message)
+      setNewPassword("")
+    } catch (err: any) {
+      setMessage(err.message || "Error updating password")
+    } finally {
+      setUpdatingPassword(false)
+    }
+  }
 
   return (
     <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-ai-bg via-ai-surface to-ai-blue-light/20 dark:from-[#121212] dark:via-[#1e1e1e] dark:to-[#2a2a2a]/20">
@@ -56,31 +110,65 @@ export default function SettingsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label className="text-base font-semibold text-ai-text dark:text-gray-300">Full Name</Label>
-                <Input 
-                  className="bg-ai-bg border-ai-border rounded-xl h-12 dark:bg-[#2a2a2a] dark:border-gray-700 dark:text-white" 
-                  placeholder="John Doe" 
-                />
+            {loadingProfile ? (
+              <div className="flex justify-center py-8">
+                <Loader2 className="w-8 h-8 animate-spin" />
               </div>
-              <div className="space-y-2">
-                <Label className="text-base font-semibold text-ai-text dark:text-gray-300">Email</Label>
-                <Input 
-                  type="email" 
-                  className="bg-ai-bg border-ai-border rounded-xl h-12 dark:bg-[#2a2a2a] dark:border-gray-700 dark:text-white" 
-                  placeholder="john@company.com" 
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label className="text-base font-semibold text-ai-text dark:text-gray-300">New Password</Label>
-              <Input 
-                type="password" 
-                className="bg-ai-bg border-ai-border rounded-xl h-12 dark:bg-[#2a2a2a] dark:border-gray-700 dark:text-white" 
-                placeholder="••••••••" 
-              />
-            </div>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label className="text-base font-semibold text-ai-text dark:text-gray-300">Full Name</Label>
+                    <Input 
+                      className="bg-ai-bg border-ai-border rounded-xl h-12 dark:bg-[#2a2a2a] dark:border-gray-700 dark:text-white" 
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      disabled
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-base font-semibold text-ai-text dark:text-gray-300">Email</Label>
+                    <Input 
+                      type="email" 
+                      className="bg-ai-bg border-ai-border rounded-xl h-12 dark:bg-[#2a2a2a] dark:border-gray-700 dark:text-white" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-base font-semibold text-ai-text dark:text-gray-300">New Password</Label>
+                  <Input 
+                    type="password" 
+                    className="bg-ai-bg border-ai-border rounded-xl h-12 dark:bg-[#2a2a2a] dark:border-gray-700 dark:text-white" 
+                    placeholder="••••••••" 
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    disabled={updatingPassword}
+                  />
+                </div>
+                {message && (
+                  <div className={`text-sm text-center ${message.includes("success") ? "text-green-500 dark:text-green-400" : "text-red-500 dark:text-red-400"}`}>
+                    {message}
+                  </div>
+                )}
+                <Button
+                  onClick={handleUpdatePassword}
+                  disabled={updatingPassword || !newPassword}
+                  className="rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-elegant hover:from-indigo-600 hover:to-indigo-700 transition-all duration-300 transform hover:-translate-y-0.5 hover:shadow-elegant-lg disabled:opacity-50 disabled:transform-none disabled:shadow-elegant dark:from-indigo-600 dark:to-indigo-700 dark:hover:from-indigo-700 dark:hover:to-indigo-800"
+                >
+                  {updatingPassword ? (
+                    <div className="flex items-center space-x-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Updating...</span>
+                    </div>
+                  ) : (
+                    "Update Password"
+                  )}
+                </Button>
+              </>
+            )}
             <div className="flex items-center justify-between p-4 bg-gradient-to-r from-ai-bg to-ai-blue-light/20 rounded-xl border border-ai-border/50 dark:from-[#2a2a2a] dark:to-[#1e40af]/20 dark:border-gray-700/50">
               <div className="space-y-1">
                 <Label className="text-base font-semibold text-ai-text dark:text-gray-300">Email Notifications</Label>
