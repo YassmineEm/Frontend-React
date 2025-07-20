@@ -6,11 +6,15 @@ import { Label } from "@/components/ui/label";
 import { Lock, LogIn } from "lucide-react";
 import { useState } from "react";
 import { login } from "@/lib/auth";
+import { useAuth } from "@/context/AuthContext";
+
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const { setUser, setIsAuth } = useAuth();
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-ai-bg via-ai-surface to-ai-blue-light/20 dark:from-[#121212] dark:via-[#1e1e1e] dark:to-[#2a2a2a]/20 p-4">
@@ -61,14 +65,15 @@ export default function AuthPage() {
                 return;
               }
               try {
-                const res = await login( email, password );
-                console.log("Login success:", res);
+                const res = await login(email, password);
 
-                if (res.user.role === "admin") {
-                  navigate("/home");
-                } else {
-                  navigate("/chat");
-                }
+                localStorage.setItem("token", res.token);
+                localStorage.setItem("userRole", res.user.role);
+
+                setUser(res.user);
+                setIsAuth(true);
+                navigate(res.user.role === "admin" ? "/home" : "/chat");
+
               } catch (err) {
                 console.error("Login failed:", err);
                 alert("Login failed. Check credentials.");

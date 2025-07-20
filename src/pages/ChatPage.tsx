@@ -25,7 +25,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer"
-import { chatWithBot , fetchConversationList} from "@/lib/api"
+import { chatWithBot , fetchConversationList , fetchConversationById} from "@/lib/api"
 
 interface Message {
   id: string
@@ -50,16 +50,28 @@ export default function ChatPage() {
   const [input, setInput] = useState("")
   const [isTyping, setIsTyping] = useState(false)
   const [showDrawer, setShowDrawer] = useState(false)
-  const [chatHistory, setChatHistory] = useState<{ question: string; timestamp: string }[]>([])
+  const [chatHistory, setChatHistory] = useState<{ _id: string; name: string }[]>([])
   const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [selectedConversation, setSelectedConversation] = useState<{
+    _id: string;
+    name: string;
+    messages: { sender: string; text: string; timestamp: string }[];
+  } | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false)
 
-  // Scroll automatique vers le bas quand messages changent
+
+
+  
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages, isTyping])
 
-  // Récupérer historique des conversations quand drawer s'ouvre
+  useEffect(() => {
+    const token = localStorage.getItem("authToken") 
+    setIsAuthenticated(!!token)
+  }, [])
+
   useEffect(() => {
   if (showDrawer) {
     fetchConversationList()
@@ -138,16 +150,16 @@ export default function ChatPage() {
             Ask questions and get intelligent responses based on your documents and conversation history.
           </p>
         </div>
-
-        <div className="flex justify-end mb-6 animate-slide-up" style={{ animationDelay: "0.1s" }}>
-          <Button
+        {isAuthenticated &&(
+          <div className="flex justify-end mb-6 animate-slide-up" style={{ animationDelay: "0.1s" }}>
+           <Button
             onClick={() => setShowDrawer(true)}
             className="flex items-center space-x-2 bg-gradient-to-r from-ai-blue to-ai-green text-white px-5 py-3 rounded-xl shadow-elegant hover:shadow-glow hover:scale-105 transition-transform duration-300 dark:shadow-none"
-          >
+           >
             <Menu className="w-4 h-4" />
             <span>Old Conversations</span>
-          </Button>
-        </div>
+           </Button>
+          </div>)}
 
         <Card className="mb-6 border-0 shadow-elegant-lg bg-ai-surface/80 backdrop-blur-sm animate-slide-up dark:bg-[#1e1e1e]/80 dark:border dark:border-gray-700/50" style={{ animationDelay: "0.2s" }}>
           <CardContent className="p-0">
@@ -255,30 +267,75 @@ export default function ChatPage() {
           )}
         </Card>
 
-        {/* Drawer for old conversations */}
-        <Drawer open={showDrawer} onOpenChange={setShowDrawer}>
-          <DrawerContent>
-            <DrawerHeader>
-              <DrawerTitle>Old Conversations</DrawerTitle>
-            </DrawerHeader>
-            <div className="p-4">
-              {chatHistory.length === 0 ? (
-                <p className="text-center text-ai-text-light dark:text-white/70">
-                  No previous conversations found.
-                </p>
-              ) : (
-                <ul className="space-y-4">
-                  {chatHistory.map(({ question, timestamp }, index) => (
-                    <li key={index} className="p-3 border border-ai-border rounded-lg cursor-pointer hover:bg-ai-blue-light/10 dark:hover:bg-[#3b82f6]/20 transition">
-                      <p className="font-semibold text-ai-text dark:text-white">{question}</p>
-                      <p className="text-xs text-ai-text-light dark:text-gray-400">{new Date(timestamp).toLocaleString()}</p>
-                    </li>
-                  ))}
-                </ul>
-              )}
+        
+       <Drawer open={showDrawer} onOpenChange={setShowDrawer}>
+        <DrawerContent>
+          <DrawerHeader>
+            <DrawerTitle>Old Conversations</DrawerTitle>
+          </DrawerHeader>
+
+        <div className="p-4 space-y-4 max-h-[600px] overflow-y-auto">
+          {chatHistory.length === 0 ? (
+            <p className="text-center text-ai-text-light dark:text-white/70">
+              No previous conversations found.
+            </p>
+          ) : (
+          <ul className="space-y-2">
+            {chatHistory.map(({ _id, name }) => (
+              <li
+                key={_id}
+                onClick={() => {
+                  if (selectedConversation?._id === _id) {
+                    setSelectedConversation(null)
+                  } else {
+                    fetchConversationById(_id)
+                      .then((data) => setSelectedConversation(data))
+                      .catch((err) => setError("Erreur lors du chargement de la conversation."))
+                  }
+                }}
+              className="p-3 border border-ai-border rounded-lg cursor-pointer hover:bg-ai-blue-light/10 dark:hover:bg-[#3b82f6]/20 transition"
+            >
+              <p className="font-semibold text-ai-text dark:text-white">{name}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+
+          {selectedConversation && (
+            <div className="mt-6 border-t pt-4">
+              <h3 className="text-lg font-semibold mb-3 text-ai-text dark:text-white">
+                {selectedConversation.name}
+              </h3>
+              <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                {selectedConversation.messages.map((msg, idx) => (
+                  <div key={idx} className="flex items-start gap-4">
+                  <div className="text-xs text-gray-500 w-24">
+                    {new Date(msg.timestamp).toLocaleString("fr-FR", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-medium text-sm text-gray-800 dark:text-white">
+                      {msg.sender === "user" ? "👤 Client" : "🤖 Assistant"}
+                    </p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">{msg.text}</p>
+                  </div>
+                </div>
+              ))}
+              </div>
             </div>
-          </DrawerContent>
-        </Drawer>
+          )}
+
+           {error && (
+            <div className="text-center text-red-600 mt-4 font-semibold">{error}</div>
+           )}
+          </div>
+        </DrawerContent>
+      </Drawer>
       </div>
     </div>
   )

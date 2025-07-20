@@ -25,14 +25,8 @@ export default function App() {
           <Route path="/auth" element={<LoginPage />} />
           <Route path="/auth/signup" element={<SignupPage />} />
 
-          <Route
-            path="/chat"
-            element={
-              <ProtectedRoute roles={["admin", "client"]}>
-                <ChatPage />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/chat" element={<ChatPage />} />
+
           <Route
             path="/settings"
             element={
