@@ -1,12 +1,12 @@
-import { Link ,useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UserPlus } from "lucide-react";
-import { FcGoogle } from "react-icons/fc";
 import { useState, useEffect } from "react";
 import { signup, googleLogin } from "@/lib/auth";
+import { useAuth } from "@/context/AuthContext"; 
 
 declare global {
   interface Window {
@@ -17,20 +17,13 @@ declare global {
 export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"admin" | "client">("client");
   const [fullName, setFullName] = useState("");
   const navigate = useNavigate();
+  const { setIsAuth, setUser } = useAuth(); 
 
+  const role = localStorage.getItem("selectedRole") === "admin" ? "admin" : "client";
 
   useEffect(() => {
-    const selectedRole = localStorage.getItem("selectedRole");
-    if (selectedRole === "admin" || selectedRole === "client") {
-      setRole(selectedRole);
-    } else {
-      setRole("client"); 
-    }
-
-    
     if (window.google) {
       window.google.accounts.id.initialize({
         client_id: import.meta.env.VITE_GOOGLE_CLIENT_ID,
@@ -50,7 +43,6 @@ export default function SignupPage() {
 
   const handleCredentialResponse = async (response: any) => {
     const idToken = response.credential;
-
     if (!idToken) {
       alert("No ID token received from Google");
       return;
@@ -59,7 +51,10 @@ export default function SignupPage() {
     try {
       const res = await googleLogin(idToken);
       localStorage.setItem("token", res.token);
-      alert("Google signup successful!");
+      localStorage.setItem("userRole", role);
+      setIsAuth(true);
+      setUser(res.user);
+      navigate(res.user.role === "admin" ? "/home" : "/chat");
     } catch (err) {
       console.error("Google signup failed:", err);
       alert("Google signup failed.");
@@ -84,8 +79,8 @@ export default function SignupPage() {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          <div 
-            id="googleSignInDiv" 
+          <div
+            id="googleSignInDiv"
             className="w-full flex justify-center dark:[&>div]:dark:bg-[#2a2a2a] dark:[&>div]:dark:border-gray-600"
             data-theme="dark"
           />
@@ -153,24 +148,9 @@ export default function SignupPage() {
                   role,
                 });
 
-                if (res.token) {
-                  localStorage.setItem("token", res.token); 
-                }
-
-                console.log("Registration success:", res);
-                alert("Account created successfully!");
-
-                if (res.token) {
-                  localStorage.setItem("token", res.token);
-                  localStorage.setItem("userRole", role); 
-                }
-
-                if (role === "admin") {
-                  navigate("/home"); 
-                } else {
-                  navigate("/chat"); 
-                }
-
+                setUser(res.user);
+                setIsAuth(true);
+                navigate(res.user.role === "admin" ? "/home" : "/chat");
               } catch (err) {
                 console.error("Registration failed:", err);
                 alert("Registration failed. Try again.");
@@ -183,8 +163,8 @@ export default function SignupPage() {
 
           <p className="text-sm text-ai-text-light dark:text-gray-400 text-center">
             Already have an account?{" "}
-            <Link 
-              to="/auth" 
+            <Link
+              to="/auth"
               className="text-ai-blue font-semibold hover:underline dark:text-[#93c5fd]"
             >
               Sign In

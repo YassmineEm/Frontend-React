@@ -25,7 +25,13 @@ export async function signup(data: {
   role?: string
 }) {
   const response = await axios.post(`${API_URL}/auth/register`, data)
-  return response.data
+  
+  
+  const token = response.data.access_token
+  localStorage.setItem("token", token)
+  const user = jwtDecode<JwtPayload>(token)
+  
+  return { token, user } 
 }
 
 export async function googleLogin(tokenId: string) {
@@ -85,6 +91,7 @@ export function isAuthenticated(): boolean {
     return false
   }
 }
+
 
 
 

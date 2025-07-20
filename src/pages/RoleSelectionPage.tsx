@@ -31,8 +31,13 @@ export default function RoleSelectionPage() {
 
   const handleSelectRole = (role: "admin" | "client") => {
     localStorage.setItem("selectedRole", role)
-    navigate("/auth/signup")
+    if (role === "admin") {
+      navigate("/auth/signup")
+    } else {
+      navigate("/chat")
+    } 
   }
+
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center bg-gradient-to-br from-ai-blue via-white to-ai-green dark:from-[#0f172a] dark:via-black dark:to-[#1e1e1e] text-center px-4 relative">
